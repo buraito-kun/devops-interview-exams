@@ -53,8 +53,8 @@ def create_user():
     
     try:
         # SECURITY ISSUE: SQL Injection vulnerability
-        query = f"INSERT INTO users (username, password, email) VALUES ('{username}', '{password}', '{email}')"
-        cursor.execute(query)
+        query = "INSERT INTO users (username, password, email) VALUES ('?', '?', '?')"
+        cursor.execute(query, (username, password, email))
         conn.commit()
         return jsonify({"message": "User created successfully"}), 201
     except Exception as e:
@@ -72,7 +72,7 @@ def search_users():
     cursor = conn.cursor()
     
     # SECURITY ISSUE: SQL Injection vulnerability
-    cursor.execute(f"SELECT id, username, email FROM users WHERE username LIKE '%{query}%'")
+    cursor.execute("SELECT id, username, email FROM users WHERE username LIKE ?", (f"%{query}%",))
     
     users = [{"id": row[0], "username": row[1], "email": row[2]} for row in cursor.fetchall()]
     conn.close()
@@ -82,4 +82,5 @@ def search_users():
 if __name__ == '__main__':
     init_db()
     # SECURITY ISSUE: Debug mode enabled
-    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)), debug=True)
+    debug_mode = os.environ.get("DEBUG", "False") == True
+    app.run(host='127.0.0.1', port=int(os.environ.get('PORT', 5000)), debug=debug_mode)
