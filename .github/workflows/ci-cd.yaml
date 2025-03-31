@@ -47,7 +47,7 @@ jobs:
     - name: Dependency scanning
       run: |
         pip install safety
-        safety check -r requirements.txt
+        safety check -r app/requirements.txt
     
     # SECURITY ISSUE: No secrets scanning
     - name: Secrets scanning
