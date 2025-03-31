@@ -15,19 +15,49 @@ spec:
         app: user-management
     spec:
       # SECURITY ISSUE: No security context
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 2000
       containers:
       - name: app
         image: user-management:latest  # SECURITY ISSUE: Using latest tag
         ports:
         - containerPort: 5000
         # SECURITY ISSUE: Running as root by default
+        securityContext:
+          allowPrivilegeEscalation: false
+          runAsNonRoot: true
         # SECURITY ISSUE: No resource limits
+        resources:
+          limits:
+            cpu: "500m"
+            memory: "128Mi"
         env:
         - name: DB_PASSWORD  # SECURITY ISSUE: Secret as environment variable
-          value: "supersecretpassword"
+          valueFrom:
+            secretKeyRef:
+              name: app-secret
+              key: DB_PASSWORD
         - name: DEBUG
-          value: "True"  # SECURITY ISSUE: Debug enabled in production
+          # value: "True"  # SECURITY ISSUE: Debug enabled in production
+          valueFrom:
+            configMapKeyRef:
+              name: app-configmap
+              key: DEBUG
         # SECURITY ISSUE: No liveness/readiness probes
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 5000
+          initialDelaySeconds: 10
+          periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 5000
+          initialDelaySeconds: 10
+          periodSeconds: 10
         # SECURITY ISSUE: No securityContext with proper capabilities
         volumeMounts:
         - name: app-data
@@ -52,3 +82,16 @@ spec:
 # SECURITY ISSUE: No network policies
 # SECURITY ISSUE: No pod security policies
 # SECURITY ISSUE: No RBAC configuration
+apiVersion: v1
+kind: Secret
+metadata:
+  name: app-secret
+data:
+  DB_PASSWORD: "c3VwZXJzZWNyZXRwYXNzd29yZA==" # "supersecretpassword"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-configmap
+data:
+  DEBUG: "True" # SECURITY ISSUE: Debug enabled in production
